@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مِسباح | Misbah</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;min-height:100vh;padding:25px 15px;
+ font-family:Tahoma,Arial,sans-serif;
+ background:linear-gradient(145deg,#101827,#17152d);
+ color:#fff;text-align:center
+}
+.container{max-width:650px;margin:auto}
+header{padding:20px}
+.logo{font-size:38px;color:#c5a3ff;font-weight:bold}
+.subtitle{color:#a9a5bb;margin-top:10px}
+.card{
+ background:#202039;border:1px solid #373253;
+ border-radius:22px;padding:22px;margin:16px 0;
+ box-shadow:0 10px 30px #0003
+}
+select{
+ width:100%;padding:14px;border-radius:12px;
+ border:1px solid #51466e;background:#17172c;
+ color:white;font-size:16px
+}
+.counter{font-size:75px;font-weight:bold;color:#d2b6ff;margin:20px}
+.tap{
+ width:190px;height:190px;border-radius:50%;
+ border:8px solid #8060bd;background:linear-gradient(145deg,#8b62d3,#543a91);
+ color:white;font-size:25px;font-weight:bold;
+ cursor:pointer;box-shadow:0 0 35px #9564df55;
+ transition:.12s
+}
+.tap:active{transform:scale(.94)}
+.secondary{
+ padding:11px 20px;border:1px solid #6e5a94;
+ border-radius:12px;background:#30294a;color:white;
+ cursor:pointer;margin:7px
+}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:#292644;padding:18px;border-radius:15px}
+.stat strong{display:block;font-size:27px;color:#c9a7ff;margin-bottom:6px}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.day{background:#292644;padding:12px 3px;border-radius:12px;font-size:12px}
+.day strong{display:block;font-size:17px;color:#d1b5ff;margin-top:7px}
+.progress{height:12px;background:#39344f;border-radius:20px;overflow:hidden;margin-top:15px}
+.bar{height:100%;width:0;background:#a77aee;transition:.3s}
+.small{font-size:13px;color:#aaa6bb}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+ <div class="logo">☪ مِسباح</div>
+ <div class="subtitle">اذكر الله واجعل لكل يوم أثرًا طيبًا</div>
+</header>
+
+<div class="card">
+ <select id="dhikr">
+  <option value="سبحان الله">سبحان الله</option>
+  <option value="الحمد لله">الحمد لله</option>
+  <option value="الله أكبر">الله أكبر</option>
+  <option value="أستغفر الله">أستغفر الله</option>
+  <option value="لا إله إلا الله">لا إله إلا الله</option>
+  <option value="اللهم صل وسلم على نبينا محمد">اللهم صل وسلم على نبينا محمد</option>
+ </select>
+
+ <div class="counter" id="count">0</div>
+ <button class="tap" id="tap">سبّح الآن</button>
+ <p class="small">اضغط مرة واحدة بعد كل تسبيحة</p>
+ <button class="secondary" id="undo">تراجع عن آخر ضغطة</button>
+ <button class="secondary" id="reset">تصفير هذا الذكر اليوم</button>
+</div>
+
+<div class="card">
+ <h3>📊 إحصائيات اليوم</h3>
+ <div class="stats">
+  <div class="stat"><strong id="today">0</strong>تسبيحات اليوم</div>
+  <div class="stat"><strong id="total">0</strong>إجمالي الأسبوع</div>
+ </div>
+</div>
+
+<div class="card">
+ <h3>📅 تسبيحات الأسبوع</h3>
+ <div class="days" id="days"></div>
+ <div class="progress"><div class="bar" id="bar"></div></div>
+ <p class="small" id="weeklyText">ابدأ التسبيح لتسجيل إنجازك</p>
+ <button class="secondary" id="clearWeek">مسح بيانات الأسبوع</button>
+</div>
+
+<p class="small">بياناتك محفوظة على هذا الجهاز تلقائيًا ❤️</p>
+</div>
+
+<script>
+const names=["السبت","الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
+const key="misbah_data_v1";
+
+function getDate(d=new Date()){
+ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function weekStart(date=new Date()){
+ const d=new Date(date);
+ const day=d.getDay();
+ d.setDate(d.getDate()-(day===6?0:day+1));
+ d.setHours(0,0,0,0);
+ return d;
+}
+function load(){
+ try{return JSON.parse(localStorage.getItem(key))||{}}
+ catch{return {}}
+}
+let data=load();
+let currentDhikr=document.getElementById("dhikr").value;
+
+function save(){
+ localStorage.setItem(key,JSON.stringify(data));
+ render();
+}
+function dayData(date=getDate()){
+ if(!data[date])data[date]={};
+ return data[date];
+}
+function getCount(date,dhikr){
+ return (data[date]&&data[date][dhikr])||0;
+}
+function add(amount){
+ const d=dayData();
+ d[currentDhikr]=Math.max(0,(d[currentDhikr]||0)+amount);
+ save();
+}
+function render(){
+ currentDhikr=document.getElementById("dhikr").value;
+ const today=getDate();
+ document.getElementById("count").textContent=getCount(today,currentDhikr);
+
+ let todayTotal=0;
+ Object.values(data[today]||{}).forEach(v=>todayTotal+=v);
+ document.getElementById("today").textContent=todayTotal;
+
+ const start=weekStart();
+ let weekTotal=0;
+ let dayValues=[];
+
+ for(let i=0;i<7;i++){
+  const date=new Date(start);
+  date.setDate(start.getDate()+i);
+  const dateKey=getDate(date);
+  let sum=0;
+  Object.values(data[dateKey]||{}).forEach(v=>sum+=v);
+  weekTotal+=sum;
+  dayValues.push(sum);
+ }
+ document.getElementById("total").textContent=weekTotal;
+
+ document.getElementById("days").innerHTML=names.map((name,i)=>
+  `<div class="day">${name}<strong>${dayValues[i]}</strong></div>`
+ ).join("");
+
+ const max=Math.max(...dayValues,1);
+ const best=Math.max(...dayValues);
+ document.getElementById("bar").style.width=(weekTotal?100:0)+"%";
+ document.getElementById("weeklyText").textContent=
+  "أعلى إنجاز يومي: "+best+" تسبيحة";
+}
+
+document.getElementById("tap").addEventListener("click",()=>add(1));
+document.getElementById("undo").addEventListener("click",()=>add(-1));
+document.getElementById("reset").addEventListener("click",()=>{
+ if(confirm("هل تريد تصفير هذا الذكر لهذا اليوم؟")){
+  dayData()[currentDhikr]=0;save();
+ }
+});
+document.getElementById("clearWeek").addEventListener("click",()=>{
+ if(confirm("هل أنت متأكد من مسح بيانات الأسبوع الحالي؟")){
+  const start=weekStart();
+  for(let i=0;i<7;i++){
+   const d=new Date(start);
+   d.setDate(start.getDate()+i);
+   delete data[getDate(d)];
+  }
+  save();
+ }
+});
+document.getElementById("dhikr").addEventListener("change",render);
+render();
+</script>
+</body>
+</html>
